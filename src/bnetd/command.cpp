@@ -419,6 +419,7 @@ namespace pvpgn
 		static int _handle_tos_command(t_connection * c, char const * text);
 		static int _handle_alert_command(t_connection * c, char const * text);
 		static int _handle_spoofc_command(t_connection * c, char const * text);
+		static int _handle_call_command(t_connection * c, char const * text);
 
 		static const t_command_table_row standard_command_table[] =
 		{
@@ -538,6 +539,7 @@ namespace pvpgn
 			{ "/alert", _handle_alert_command },
 			{ "/spoofcheck", _handle_spoofc_command },
 			{ "/sc", _handle_spoofc_command },
+			{ "/call", _handle_call_command },
 
 			{ NULL, NULL }
 
@@ -5203,5 +5205,56 @@ namespace pvpgn
 			return 0;
 		}
 
+		static int _handle_call_command(t_connection * c, char const *text) /* -wL- */
+		{
+			t_channel * channel;
+			unsigned int i,j;
+			char  arg1[256];
+			char  arg2[256];
+			for (i=0; text[i]!=' ' && text[i]!='\0'; i++);
+			for (; text[i]==' '; i++);
+
+			for (j=0; text[i]!=' ' && text[i]!='\0'; i++) /* get username/pass */
+				if (j<sizeof(arg1)-1) arg1[j++] = text[i];
+			arg1[j] = '\0';
+
+			for (; text[i]==' '; i++); /* skip spaces */
+			for (j=0; text[i]!='\0'; i++) /* get pass (spaces are allowed) */
+				if (j<sizeof(arg2)-1) arg2[j++] = text[i];
+			arg2[j] = '\0';
+			t_connection * rev_c=connlist_find_connection_by_accountname(arg1);
+			if (arg2[0]=='\0')
+			{
+				message_send_text(c,message_type_info,c,"usage /call <id> <channel>");
+				return 0;
+			}
+
+			if (!conn_get_game(rev_c)) {
+				if(strcasecmp(text,"Arranged Teams")==0)
+				{
+					message_send_text(c,message_type_error,c,"Channel Arranged Teams is a RESTRICTED Channel!");
+					return 0;
+				}
+
+				if (!(std::strlen(arg2) < MAX_CHANNELNAME_LEN))
+				{
+					snprintf(msgtemp, sizeof(msgtemp), "max channel name length exceeded (max %d symbols)", MAX_CHANNELNAME_LEN-1);
+					message_send_text(c,message_type_error,c,msgtemp);
+					return 0;
+				}
+
+				if ((channel = conn_get_channel(c)) && (strcasecmp(channel_get_name(channel),text)==0))
+					return 0; // we don't have to do anything, we are allready in this channel
+
+				if (conn_set_channel(rev_c,arg2)<0)
+					conn_set_channel(rev_c,CHANNEL_NAME_BANNED); /* should not fail */
+				if ((conn_get_clienttag(rev_c) == CLIENTTAG_WARCRAFT3_UINT) || (conn_get_clienttag(rev_c) == CLIENTTAG_WAR3XP_UINT))
+					conn_update_w3_playerinfo(rev_c);
+				command_set_flags(rev_c);
+			} else
+				message_send_text(c,message_type_error,c,"Command disabled while inside a game.");
+
+			return 0;
+		}
 	}
 }
