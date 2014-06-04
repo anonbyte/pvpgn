@@ -418,6 +418,7 @@ namespace pvpgn
 		static int _handle_clearstats_command(t_connection * c, char const * text);
 		static int _handle_tos_command(t_connection * c, char const * text);
 		static int _handle_alert_command(t_connection * c, char const * text);
+		static int _handle_spoofc_command(t_connection * c, char const * text);
 
 		static const t_command_table_row standard_command_table[] =
 		{
@@ -535,6 +536,8 @@ namespace pvpgn
 			{ "/clearstats", _handle_clearstats_command },
 			{ "/icon", handle_icon_command },
 			{ "/alert", _handle_alert_command },
+			{ "/spoofcheck", _handle_spoofc_command },
+			{ "/sc", _handle_spoofc_command },
 
 			{ NULL, NULL }
 
@@ -5164,6 +5167,37 @@ namespace pvpgn
 					}
 					messagebox_show(conn, goodtext.c_str(), msgtemp);
 				}
+			}
+
+			return 0;
+		}
+
+		static int _handle_spoofc_command(t_connection * c, char const *text)
+		{
+			unsigned int i;
+			t_connection *    user;
+			t_game     *    game;
+
+			char const texe[4]=" sc";
+			for (i=0; text[i]!=' ' && text[i]!='\0'; i++); /* skip command */
+			for (; text[i]==' '; i++);
+
+			if ((game=conn_get_game(c))&&(user = game_get_owner(game)))
+			{
+				snprintf(msgtemp, sizeof(msgtemp), "%.64s",conn_get_username(user));
+				//snprintf(msgtemp2, sizeof(msgtemp2), "%.64s",&texe[4]);
+				do_whisper(c,msgtemp,"sc");
+				return 0;
+			}
+			else if(!(game=conn_get_game(c)))
+			{
+				message_send_text(c,message_type_error,c,"Only in lobby game!");
+				return 0;
+			}
+			else
+			{
+				message_send_text(c,message_type_error,c,"Error: you're in the game,but host not found.");
+				return 0;
 			}
 
 			return 0;

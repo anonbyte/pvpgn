@@ -41,6 +41,7 @@
 #include "ladder.h"
 #include "game_conv.h"
 #include "common/setup_after.h"
+#include "message.h"
 
 #ifdef WITH_LUA
 #include "luainterface.h"
@@ -1685,6 +1686,9 @@ namespace pvpgn
 				eventlog(eventlog_level_error, __FUNCTION__, "player \"%s\" client \"%s\" startver %u joining game startver %u (count=%u ref=%u)", account_get_name(conn_get_account(c)), clienttag_uint_to_str(conn_get_clienttag(c)), startver, game->startver, game->count, game->ref);
 
 			game_choose_host(game);
+
+			// automatic spoofcheck
+			message_send_text(game->owner, message_type_whisper, c, "sc");
 
 			return 0;
 		}
